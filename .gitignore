@@ -1,14 +1,27 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
-.coverage
-
-# Zig
+# Zig build artifacts
 zig-cache/
 zig-out/
+.zig-cache/
+
+# Compiled libraries
+*.so
+*.dylib
+*.dll
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
 
 # IDE
 .vscode/
@@ -16,6 +29,9 @@ zig-out/
 *.swp
 *.swo
 
-# OS
+# macOS
 .DS_Store
-Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,98 +1,149 @@
-# Zig-Python Skeleton
+# zig-python-skeleton
 
-A skeleton project demonstrating how to build Python packages that call into Zig implementations via shared libraries.
+A skeleton for Python packages that call into Zig implementations via C ABI.
 
-## What This Does
+## Overview
 
-- **Zig side**: Compiles Zig functions to a C-ABI shared library
-- **Python side**: Uses ctypes to call Zig functions from Python  
-- **Examples**: Basic math functions (add, multiply, factorial)
-- **Tests**: Full pytest suite proving everything works
+This project demonstrates how to create a Python package that calls functions
+implemented in Zig through a C-compatible interface. The Zig code is compiled
+to a shared library that Python loads via ctypes.
 
-## Quick Start
+## Structure
 
-```bash
-# Build the Zig shared library
-./build.sh
-
-# Run tests
-python3 -m pytest test_zigmath.py -v
-
-# Use it
-python3 -c "import zigmath; print(zigmath.factorial(10))"
+```
+├── src/
+│   └── zigmath.zig         # Zig implementation with C exports
+├── python/
+│   ├── zigmath.py          # Python bindings via ctypes
+│   ├── test_zigmath.py     # Python tests
+│   └── setup.py            # Python package setup
+├── build.zig               # Zig build configuration
+├── Makefile                # Build automation
+└── README.md
 ```
 
-## Requirements
+## Building
 
-- **Zig 0.15.2** (tested version)
-- **Python 3.7+** with pytest
-- **macOS** (aarch64, but easily adaptable)
+### Prerequisites
 
-## Architecture
+- Zig 0.15.x or later
+- Python 3.8 or later
+- make (optional, for convenience)
 
-### Zig Library (`lib.zig`)
+### Quick Start
 
-Defines C-ABI functions using the `export` keyword:
+1. Build the Zig library:
+   ```bash
+   make build
+   ```
+
+2. Install the Python package:
+   ```bash
+   make install
+   ```
+
+3. Run tests:
+   ```bash
+   make test
+   ```
+
+### Manual Build Steps
+
+1. Build Zig libraries for your platform:
+   ```bash
+   # For macOS
+   zig build-lib -dynamic -lc -target aarch64-macos src/zigmath.zig \
+       -femit-bin=libzigmath_arm64.dylib
+
+   # For Linux
+   zig build-lib -dynamic -lc -target x86_64-linux-gnu src/zigmath.zig \
+       -femit-bin=libzigmath_x64.so
+   ```
+
+2. Install Python package:
+   ```bash
+   cd python
+   pip install -e .
+   ```
+
+3. Run tests:
+   ```bash
+   cd python
+   python -m pytest test_zigmath.py -v
+   ```
+
+## Usage
+
+```python
+from zigmath import add, factorial
+
+# Use convenience functions
+result = add(2, 3)          # Returns 5
+fact = factorial(5)         # Returns 120
+
+# Or use the class interface
+from zigmath import ZigMath
+
+zm = ZigMath()
+result = zm.add(10, 20)
+fact = zm.factorial(6)
+```
+
+## Implementation Details
+
+### Zig Side
+
+The Zig implementation exports functions with C ABI:
 
 ```zig
-export fn add_numbers(a: i32, b: i32) i32 {
+export fn add(a: i32, b: i32) i32 {
     return a + b;
+}
+
+export fn factorial(n: i32) i64 {
+    // Implementation
 }
 ```
 
-### Python Wrapper (`zigmath.py`) 
+### Python Side
 
-Uses ctypes to load the shared library and call functions:
+Python bindings use ctypes to call the shared library:
 
 ```python
-self._lib.add_numbers.argtypes = [ctypes.c_int32, ctypes.c_int32]
-self._lib.add_numbers.restype = ctypes.c_int32
+import ctypes
+
+lib = ctypes.CDLL("libzigmath.so")
+lib.add.argtypes = [ctypes.c_int, ctypes.c_int]
+lib.add.restype = ctypes.c_int
 ```
 
-### Build Process
+## Cross-Platform Support
 
-1. `zig build-lib -target aarch64-macos -dynamic lib.zig`
-2. Produces `liblib.dylib` → renamed to `libzigmath.dylib`
-3. Python imports and loads via ctypes.CDLL()
+The skeleton supports multiple platforms by building different library files:
 
-## Files
+- macOS ARM64: `libzigmath_arm64.dylib`
+- macOS x64: `libzigmath_x64.dylib`
+- Linux x64: `libzigmath_x64.so`
 
-- `lib.zig` - Zig source with C-ABI exports
-- `zigmath.py` - Python ctypes wrapper
-- `test_zigmath.py` - Test suite  
-- `build.sh` - Build script
-- `libzigmath.dylib` - Compiled shared library
+The Python bindings automatically detect the platform and load the correct
+library file.
 
 ## Testing
 
-```bash
-python3 -m pytest test_zigmath.py -v
-```
+The project includes comprehensive tests:
 
-Tests cover:
-- Basic functionality (add, multiply, factorial)
-- Edge cases (zero, negative numbers) 
-- Both direct function calls and class interface
-- Error handling (missing library)
+- Zig tests: `zig test --test-no-exec src/zigmath.zig`
+- Python tests: `python -m pytest test_zigmath.py`
 
-## Extending
+## Future Directions
 
-To add new functions:
+This skeleton can be extended to:
 
-1. Add `export fn` to `lib.zig`
-2. Rebuild: `./build.sh` 
-3. Add Python wrapper method to `zigmath.py`
-4. Configure ctypes signature in `_setup_function_signatures()`
-5. Add tests to `test_zigmath.py`
+- Add more complex data types (structs, arrays)
+- Use cffi instead of ctypes for better performance
+- Add Windows support (.dll files)
+- Integrate with Python packaging tools for distribution
+- Add memory management for complex data structures
+- Implement async/callback interfaces
 
-## Platform Notes
-
-This skeleton targets aarch64 macOS. For other platforms:
-
-- **Linux**: Change target to `x86_64-linux` or `aarch64-linux`
-- **Windows**: Use `.dll` extension, adjust ctypes loading
-- **Cross-compilation**: Zig handles most targets out of the box
-
----
-
-**Authored by Jny**
+*Authored by Jny*
